@@ -12,32 +12,59 @@ import sounddevice # gets rid of those annoying ALSA errors
 
 from gtts import gTTS # text to speech
 from io import BytesIO # to pipe voice to object rather than file
-import pygame # for playing sound
+
+from pydub import AudioSegment # using pydub rather than pygame prevent all those ALSA undderruns
+from pydub.playback import play
+
+# helping GPT a little by installing some stuff
+# selenium, chromium-browser, pyvirtualdisplay
 
 
-pygame.init()
-pygame.mixer.init(buffer=4096) #prevent underrun errors
+# determine device_index for webcam mic
+# Input Device id  1  -  USB Device 0x46d:0x821: Audio (hw:3,0)
+# sr.Microphone(device_index=1)
+import pyaudio
+p = pyaudio.PyAudio()
+info = p.get_host_api_info_by_index(0)
+numdevices = info.get('deviceCount')
+
+for i in range(0, numdevices):
+        if (p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels')) > 0:
+            print ("Input Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+
+
 class Speech():
     @classmethod
     def speak(cls, text):
+        if text == "":
+            print("nothing to say")
+            return
         mp3_file_object = BytesIO()
         tts = gTTS(text, lang='en')
         tts.write_to_fp(mp3_file_object)
-        pygame.mixer.music.load(mp3_file_object, 'mp3')
-        pygame.mixer.music.play()
-        # wait until done
-        # while pygame.mixer.get_busy() == True:
-        #     time.sleep(1)
+
+        mp3_file_object.seek(0)
+        play(AudioSegment.from_file(mp3_file_object, format="mp3"))
 
 openai.api_key = os.getenv('OPENAI_API_KEY')
 model_engine = "text-davinci-003"
 prompt = """
-you have a python interface to a linux machine. you are able to write python code and execute it on this machine. 
-I will ask you questions. your responses will always be in python code. if you have anything to say that is not python code
-make sure it's displayed as a python comment.
-my first task of you is to tell me what version of piOs is running. The best way to do this is to run "cat /etc/os-release"
-and then search for VERSION_CODENAME.
+You have a python interface to a raspberry pi running piOS. you are able to write python code and execute it on this machine. 
+You are very good at parsing the code of webpages using python to figure out what to do on the webpage.
+You do this by using the selenium module in python and chromium driver running on a headless raspberry pi.
+
+I will ask you questions. your responses will always be in python code.
+Any additional text that isn't python code should be a python comment.
+Always start the python code with a comment.
+Make sure to import all necessary python modules.
+
+My first task of you is to tell me what version of piOs is running.
+The best way to do this is to run "cat /etc/os-release" and then search for VERSION_CODENAME.
+To control a fireplace visit http://192.168.50.31:5555/ and click the button called triggerButton.
 """
+
+# You can also write python code to run "pip" or "apt-get" to install anything you need to run the python script.
+
 
 # Generate a response
 def ask(prompt):
@@ -52,37 +79,53 @@ def ask(prompt):
     )
     return completion.choices[0].text
 
-# to maintain conext, just keep appending to prompt with "/n" delimiters
 
-response = ask(prompt)
-print("===GPT CODE===")
-print(response)
-print("======")
-# execute reponse
-file = "gpt_start.py"
-f = open(file, "w")
-f.write(response)
-f.close()
-#os.system("python " + file)
-p = subprocess.run(["python", file], capture_output=True, text=True)
-print("STDOUT")
-print(p.stdout)
-print("STDERR")
-print(p.stderr)
+def gptRunCode(prompt):
+    response = ask(prompt)
+    print("===GPT CODE===")
+    print(response)
+    print("======")
 
-resp =  p.stdout
-if "Traceback" in p.stderr:
-    resp = "error running the code"
-print("===GPT RESPONSE===")
-print(resp)
-print("======")
+    # we've asked GPT to always start the python code with a comment
+    # let's start there
+    i = response.index('#')
+    response = response[i:]
+
+    # execute reponse
+    file = "code.py"
+    f = open(file, "w")
+    f.write(response)
+    f.close()
+    #os.system("python " + file)
+    p = subprocess.run(["python", file], capture_output=True, text=True)
+    print("STDOUT")
+    print(p.stdout)
+    print("STDERR")
+    print(p.stderr)
+
+    resp =  p.stdout
+
+    # ModuleNotFoundError: No module named 'playsound'
+    # should we install python modules?
+
+    errors = [
+        "Traceback",
+        "SyntaxError",
+        "IndentationError"
+    ]
+    if any(err in p.stderr for err in errors):
+        resp = "error running the code"
+    print("===GPT RESPONSE===")
+    print(resp)
+    print("======")
+    return resp
+
+resp = gptRunCode(prompt)
 Speech.speak(resp)
 
-time.sleep(30)
-
-exit()
 r = sr.Recognizer()
-speech = sr.Microphone(device_index=2)
+
+speech = sr.Microphone(device_index=1)
 while 1:
     # get some input
     with speech as source:
@@ -90,6 +133,7 @@ while 1:
         audio = r.adjust_for_ambient_noise(source)
         audio = r.listen(source)
     try:
+        print("speech to text...")
         recog = r.recognize_google(audio, language = 'en-US')
         print("You said: " + recog)
     except sr.UnknownValueError:
@@ -99,6 +143,8 @@ while 1:
         print("Could not request results from Google Speech Recognition service; {0}".format(e))
         continue
 
-    response = ask(recog)[0:254]
-
-    print("the response from GPT was ", response)
+    # to maintain conext, just keep appending to prompt with "/n" delimiters
+    prompt += "\n" + recog
+    print(prompt)
+    resp = gptRunCode(prompt)
+    Speech.speak(resp)
