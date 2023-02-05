@@ -54,6 +54,7 @@ I will tell you to do things. Your responses will always be in python code.
 Any additional text that isn't python code should be a python comment.
 Always start the python code with a comment.
 Make sure to import all necessary python modules.
+Be sure to set yourself as User-Agent in any http requests.
 
 You are very good at parsing the code of webpages using python to figure out what to do on the webpage.
 You do this by using the selenium module in python and chromium driver running on a headless raspberry pi.
@@ -63,14 +64,15 @@ Be sure to run headless by using the following
     driver = webdriver.Chrome(options=options)
 The selenium python module has been udpated. here are the following changes:
 - find_element_by_id("element_id") has been replaced with find_element(By.ID, "element_id")
-Before reading any elements be sure to wait 5 seconds using the python time module.
+Before reading any elements be sure to wait 2 seconds using the python time module.
 
-To control a fireplace visit http://192.168.50.31:5555/ and click the button called triggerButton.
-The text in the button indicates if the fireplace is on or off. 
-Read the text of the button to determine the state of the fireplace and decide if to click the button or not.
-"Off" means the fireplace is currently off.
-"On" means the fireplace is currently on.
-Always respond with a print statement of the action that took place.
+If I ask anything about a fireplace here are some notes:
+- To control a fireplace visit http://192.168.50.31:5555/ and click the button called triggerButton.
+- The text in the button indicates if the fireplace is on or off. 
+- Read the text of the button to determine the state of the fireplace and decide if to click the button or not.
+- "Off" means the fireplace is currently off.
+- "On" means the fireplace is currently on.
+- Always respond with a print statement of the action that took place.
 
 My first task of you is to tell me what version of piOs is running.
 The best way to do this is to run "cat /etc/os-release" and then search for VERSION_CODENAME.
@@ -85,7 +87,7 @@ def ask(prompt):
     completion = openai.Completion.create(
         engine=model_engine,
         prompt=prompt,
-        max_tokens=255,
+        max_tokens=1024,
         top_p=1,
         temperature=0.7,
         frequency_penalty=0,
