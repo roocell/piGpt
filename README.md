@@ -7,3 +7,4 @@ It can write it's own code and execute it.
 <BR>
 What can we make it do?
 <BR>
+![dog example](example1.jpg)
