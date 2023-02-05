@@ -63,6 +63,7 @@ Be sure to run headless by using the following
     driver = webdriver.Chrome(options=options)
 The selenium python module has been udpated. here are the following changes:
 - find_element_by_id("element_id") has been replaced with find_element(By.ID, "element_id")
+Before reading any elements be sure to wait 5 seconds using the python time module.
 
 To control a fireplace visit http://192.168.50.31:5555/ and click the button called triggerButton.
 The text in the button indicates if the fireplace is on or off. 
