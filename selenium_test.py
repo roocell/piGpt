@@ -17,9 +17,11 @@ options.add_argument('--headless')
 # options.add_argument('--no-sandbox')
 # options.add_argument('--disable-dev-shm-usage')
 
-driver = webdriver.Chrome(chrome_options=options)
+driver = webdriver.Chrome(options=options)
 
 # this was copied (almost) directly from a GPT output!
+# the syntax has changed since GPT was trained (sometime is 2020?)
+# we will have to teach it the syntax differences with teh selenium python module
 driver.get("http://192.168.50.31:5555/")
 triggerFireplace_button = driver.find_element(By.ID, "triggerButton")
 triggerFireplace_button.click()
