@@ -67,6 +67,8 @@ The selenium python module has been udpated. here are the following changes:
 - find_element_by_id("element_id") has been replaced with find_element(By.ID, "element_id")
 Before reading any elements be sure to wait 2 seconds using the python time module.
 
+If you are unsure what to do then just create python code that prints what you're thinking.
+
 If I ask anything about a fireplace here are some notes:
 - To control a fireplace visit http://192.168.50.31:5555/ and click the button called triggerButton.
 - The text in the button indicates if the fireplace is on or off. 
@@ -75,9 +77,12 @@ If I ask anything about a fireplace here are some notes:
 - "On" means the fireplace is currently on.
 - Always respond with a print statement of the action that took place.
 
+If you see ModuleNotFoundError, then write python code to install the necessary modules.
+"""
+
+first = """
 My first task of you is to tell me what version of piOs is running.
 The best way to do this is to run "cat /etc/os-release" and then search for VERSION_CODENAME.
-
 """
 
 # You can also write python code to run "pip" or "apt-get" to install anything you need to run the python script.
@@ -130,14 +135,16 @@ def gptRunCode(prompt):
         "SyntaxError",
         "IndentationError"
     ]
+    status = True
     if any(err in p.stderr for err in errors):
         resp = "error running the code"
+        status = False
     print("===GPT RESPONSE===")
     print(resp)
     print("======")
-    return resp
+    return status, resp, p.stderr
 
-resp = gptRunCode(prompt)
+status, resp, stderr = gptRunCode(prompt + first)
 Speech.speak(resp)
 
 r = sr.Recognizer()
@@ -150,7 +157,7 @@ while 1:
         audio = r.adjust_for_ambient_noise(source)
         audio = r.listen(source)
     try:
-        print("speech to text...")
+        print("converting speech to text...")
         recog = r.recognize_google(audio, language = 'en-US')
         print("You said: " + recog)
     except sr.UnknownValueError:
@@ -160,8 +167,18 @@ while 1:
         print("Could not request results from Google Speech Recognition service; {0}".format(e))
         continue
 
-    # to maintain conext, just keep appending to prompt with "/n" delimiters
-    prompt += "\n" + recog
-    print(prompt)
-    resp = gptRunCode(prompt)
+    # to maintain conext, just keep appending to prompt with "/n" delimiters ?
+
+    status, resp, stderr = gptRunCode(prompt + "\n" + recog)
+    tries = 1
+    while status == False and tries < 5:
+        # do we need to install python modules?
+        tries += 1
+        # feed back the errors to GPT - maybe it can correct the code
+        Speech.speak("trying again {}".format(tries))
+        print("feeding back errors")
+        status, resp, stderr = gptRunCode(prompt + "\n" + recog + "correct these errors\n" + stderr + "\n")
+    if len(resp) > 256:
+        resp = "the output is too long to recite"
     Speech.speak(resp)
+

@@ -64,3 +64,59 @@ If I ask anything about a fireplace here are some notes:
 So I can ask GPT to 'turn on the fireplace' and it will <BR>
 - generate the corresponding python code<BR>
 - app.py will run the code and convert any output to speech and play it.<BR>
+This results in something like this:
+```
+You said: turn on the fireplace
+===GPT CODE===
+# Import necessary modules
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+
+# Setup driver
+options = webdriver.ChromeOptions()
+options.add_argument('--headless')
+driver = webdriver.Chrome(options=options)
+
+# Visit the webpage
+driver.get("http://192.168.50.31:5555/")
+
+# Wait for page to load
+time.sleep(2)
+
+# Check the text of the button
+element = driver.find_element(By.ID, "triggerButton")
+if element.text == "Off":
+    # Fireplace is off, so turn it on
+    element.click()
+    print("Turning on the fireplace")
+else:
+    print("Fireplace is already on")
+======
+STDOUT
+Turning on the fireplace
+STDERR
+===GPT RESPONSE===
+Turning on the fireplace
+======
+```
+
+
+## direction on methods
+Once I notice that it's capable of writing code using a particular website, subsequent <BR>
+requests can contain directions on how it should go about doing the job.
+```
+what's the current stock price for microsoft
+```
+versus
+```
+what's the current stock price for microsoft, use marketwatch.com
+```
+
+## auto installation of python modules
+This prompt addition achieved the desired result first try.
+First run of code will fail, then it'll see the error, write/run python code to install modules, then you can make your request again and it works.
+Tip: to test you can speak "use the <XXXX> python module to ....."
+```
+If you see ModuleNotFoundError, then write python code to install the necessary modules.
+```
