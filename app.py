@@ -67,9 +67,10 @@ The selenium python module has been udpated. here are the following changes:
 - find_element_by_id("element_id") has been replaced with find_element(By.ID, "element_id")
 Before reading any elements be sure to wait 2 seconds using the python time module.
 
-If you are unsure what to do then just create python code that prints what you're thinking.
+If you are unsure what to do then just create python code that uses print statements for what you're thinking.
+If you see ModuleNotFoundError, then write python code to install the necessary modules.
 
-If I ask anything about a fireplace here are some notes:
+Here are some notes on controlling a fireplace. Only use them if the last thing i say mentions a fireplace.
 - To control a fireplace visit http://192.168.50.31:5555/ and click the button called triggerButton.
 - The text in the button indicates if the fireplace is on or off. 
 - Read the text of the button to determine the state of the fireplace and decide if to click the button or not.
@@ -77,30 +78,38 @@ If I ask anything about a fireplace here are some notes:
 - "On" means the fireplace is currently on.
 - Always respond with a print statement of the action that took place.
 
-If you see ModuleNotFoundError, then write python code to install the necessary modules.
 """
+# If you see "sh: 1: <application>: not found", then write python code to use apt-get to install the application.
+# When using apt-get do not use sudo but always use the "-y" option
 
-first = """
-My first task of you is to tell me what version of piOs is running.
-The best way to do this is to run "cat /etc/os-release" and then search for VERSION_CODENAME.
-"""
-
+# first = """
+# My first task of you is to tell me what version of piOs is running.
+# The best way to do this is to run "cat /etc/os-release" and then search for VERSION_CODENAME.
+# """
+first = ""
 # You can also write python code to run "pip" or "apt-get" to install anything you need to run the python script.
+# If you see ModuleNotFoundError, then write python code to install the necessary modules.
+# Be sure to try installing necessary modules before importing them.
 
 
 # Generate a response
 def ask(prompt):
-    completion = openai.Completion.create(
-        engine=model_engine,
-        prompt=prompt,
-        max_tokens=1024,
-        top_p=1,
-        temperature=0.7,
-        frequency_penalty=0,
-        presence_penalty=0
-    )
-    return completion.choices[0].text
-
+    print("contacting GPT...")
+    try:
+        completion = openai.Completion.create(
+            engine=model_engine,
+            prompt=prompt,
+            max_tokens=1024,
+            top_p=1,
+            temperature=0.7,
+            frequency_penalty=0,
+            presence_penalty=0,
+            request_timeout = 30
+        )
+        return completion.choices[0].text
+    except Exception as e:        
+        print("openai error", e)
+        return "print(\"openai is down\")"
 
 def gptRunCode(prompt):
     response = ask(prompt)
@@ -110,8 +119,9 @@ def gptRunCode(prompt):
 
     # we've asked GPT to always start the python code with a comment
     # let's start there
-    i = response.index('#')
-    response = response[i:]
+    if '#' in response:
+        i = response.index('#')
+        response = response[i:]
 
     # execute reponse
     file = "code.py"
@@ -119,6 +129,7 @@ def gptRunCode(prompt):
     f.write(response)
     f.close()
     #os.system("python " + file)
+    print("Executing code...")
     p = subprocess.run(["python", file], capture_output=True, text=True)
     print("STDOUT")
     print(p.stdout)
@@ -171,14 +182,14 @@ while 1:
 
     status, resp, stderr = gptRunCode(prompt + "\n" + recog)
     tries = 1
-    while status == False and tries < 5:
+    while status == False and tries < 2:
         # do we need to install python modules?
         tries += 1
         # feed back the errors to GPT - maybe it can correct the code
         Speech.speak("trying again {}".format(tries))
         print("feeding back errors")
         status, resp, stderr = gptRunCode(prompt + "\n" + recog + "correct these errors\n" + stderr + "\n")
-    if len(resp) > 256:
+    if len(resp) > 64:
         resp = "the output is too long to recite"
     Speech.speak(resp)
 

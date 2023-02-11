@@ -101,7 +101,6 @@ Turning on the fireplace
 ======
 ```
 
-
 ## direction on methods
 Once I notice that it's capable of writing code using a particular website, subsequent <BR>
 requests can contain directions on how it should go about doing the job.
@@ -115,7 +114,7 @@ what's the current stock price for microsoft, use marketwatch.com
 
 ## auto installation of python modules
 This prompt addition achieved the desired result first try.
-First run of code will fail, then it'll see the error, write/run python code to install modules, then you can make your request again and it works.
+First run of code will fail, then it'll see the error, write/run python code to install modules, then you can make your request again and it works.<BR>
 Tip: to test you can speak "use the <XXXX> python module to ....."
 ```
 If you see ModuleNotFoundError, then write python code to install the necessary modules.
